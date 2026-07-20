@@ -1,0 +1,13 @@
+{
+  "name": "meter-console",
+  "version": "1.0.0",
+  "description": "Local energy meter dashboard with SQLite storage and daily/monthly reports",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "license": "MIT"
+}
