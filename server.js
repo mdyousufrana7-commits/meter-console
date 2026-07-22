@@ -9,15 +9,8 @@ const poller = require('./poller');
 const reports = require('./reports');
 
 const PORT = process.env.PORT || 5177;
-const PUBLIC_DIR = path.join(__dirname, 'public');
-
-const MIME = {
-  '.html': 'text/html; charset=utf-8',
-  '.js': 'text/javascript; charset=utf-8',
-  '.css': 'text/css; charset=utf-8',
-  '.json': 'application/json; charset=utf-8',
-  '.svg': 'image/svg+xml'
-};
+// index.html lives right next to server.js — no public/ subfolder needed.
+const INDEX_FILE = path.join(__dirname, 'index.html');
 
 function send(res, status, body, headers = {}) {
   res.writeHead(status, Object.assign({ 'Access-Control-Allow-Origin': '*' }, headers));
@@ -45,13 +38,10 @@ function meterPublic(m) {
   };
 }
 
-async function serveStatic(req, res, pathname) {
-  let filePath = path.join(PUBLIC_DIR, pathname === '/' ? 'index.html' : pathname);
-  if (!filePath.startsWith(PUBLIC_DIR)) { send(res, 403, 'Forbidden'); return; }
-  fs.readFile(filePath, (err, data) => {
-    if (err) { send(res, 404, 'Not found'); return; }
-    const ext = path.extname(filePath);
-    send(res, 200, data, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
+function serveIndex(req, res) {
+  fs.readFile(INDEX_FILE, (err, data) => {
+    if (err) { send(res, 404, 'index.html not found next to server.js'); return; }
+    send(res, 200, data, { 'Content-Type': 'text/html; charset=utf-8' });
   });
 }
 
@@ -129,8 +119,8 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, csv, { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="monthly-${meterId}-${month}.csv"` });
     }
 
-    // ---------- static ----------
-    if (req.method === 'GET') return serveStatic(req, res, p);
+    // ---------- static (single-page app: everything else serves index.html) ----------
+    if (req.method === 'GET' && !p.startsWith('/api/')) return serveIndex(req, res);
 
     return send(res, 404, 'Not found');
   } catch (e) {
